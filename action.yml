@@ -1,5 +1,5 @@
 name: gradle10-ready
-description: "Find what Gradle 10 removes in your build scripts without running Gradle: Groovy space-assignment, multi-string dependency notation, Kotlin DSL delegated properties, project.properties and more."
+description: "Find what Gradle 10 removes in your Gradle build scripts, without running Gradle."
 author: cosmichackerx
 branding:
   icon: check-circle

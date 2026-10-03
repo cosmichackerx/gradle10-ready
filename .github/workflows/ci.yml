@@ -9,6 +9,28 @@ permissions:
   contents: read
 
 jobs:
+  action-metadata:
+    name: action.yml metadata (Marketplace limits)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: name, description (max 125 characters) and branding are present and valid
+        run: |
+          python3 - <<'PY'
+          import re
+          t = open("action.yml", encoding="utf-8").read()
+          name = re.search(r"^name:\s*(.+)$", t, re.M).group(1).strip().strip('"')
+          desc = re.search(r"^description:\s*(.+)$", t, re.M).group(1).strip().strip('"')
+          icon = re.search(r"^  icon:\s*(\S+)", t, re.M)
+          color = re.search(r"^  color:\s*(\S+)", t, re.M)
+          assert name, "name missing"
+          assert 0 < len(desc) <= 125, f"description is {len(desc)} characters; the Marketplace allows at most 125"
+          assert icon and color, "branding icon and color are required"
+          assert color.group(1) in {"white", "black", "yellow", "blue", "green", "orange", "red", "purple", "gray-dark"}, color.group(1)
+          print(f"ok: {name!r}, description {len(desc)} characters, icon {icon.group(1)}, color {color.group(1)}")
+          PY
   test:
     name: test (${{ matrix.os }}, python ${{ matrix.python }})
     runs-on: ${{ matrix.os }}
