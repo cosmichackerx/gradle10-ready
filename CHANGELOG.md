@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+* **PR mode:** `--base REF` reports only findings new compared to the merge base (matched by rule, file and line text; renames followed). Action inputs `pr-mode`, `base`.
+* **Sticky pull request comment:** Action input `comment: true` (`python -m gradle10_ready.comment`); one comment updated in place, skipped for forks and missing permissions. CI proves one comment after two runs.
 * `--fix` for `kotlin-dsl-delegate`: container delegates (`registering`, `creating`, `existing`, `getting`, with optional `(Type::class)`), `val x: T by project`, `val x: T by extra` and `val x by extra(expr)`. Verified with `--fix-check` on real Gradle 9.8.0 (now also run for the Kotlin DSL project in CI).
 
 ## 0.1.0 - 2026-10-03
