@@ -134,7 +134,7 @@ Needs git history (`actions/checkout` with `fetch-depth: 0`); exit code 2 with a
 ```yaml
 repos:
   - repo: https://github.com/cosmichackerx/gradle10-ready
-    rev: v0.2.0
+    rev: v0.2.1
     hooks:
       - id: gradle10-ready          # reports; add args: ["--fail-on", "warning"] to be stricter
       # - id: gradle10-ready-fix    # or: rewrite the mechanical fixes (pre-commit then fails once so you can review the diff)
@@ -162,7 +162,7 @@ Left alone (reported only): `by tasks.creating` (`TaskContainer.create` is itsel
 
 ```yaml
 - uses: actions/checkout@v4
-- uses: cosmichackerx/gradle10-ready@v0.2.0
+- uses: cosmichackerx/gradle10-ready@v0.2.1
   with:
     fail-on: error            # error | warning | never
     # path: .                 # project directory or one build file
@@ -178,7 +178,7 @@ permissions: { contents: read, pull-requests: write }
 steps:
   - uses: actions/checkout@v4
     with: { fetch-depth: 0 }
-  - uses: cosmichackerx/gradle10-ready@v0.2.0
+  - uses: cosmichackerx/gradle10-ready@v0.2.1
     with:
       pr-mode: "true"      # base = the pull request base commit; or pass `base:`
       comment: "true"

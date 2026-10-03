@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.2.1 - 2026-10-03
 
 * **Gradle deprecation watch:** weekly workflow `gradle-watch.yml` runs `scripts/watch/watch_upgrade_guide.py`, which diffs the "Deprecations" sections of the Gradle 9 upgrade guide against the rule table and `scripts/watch/triaged.txt`, and opens one issue for new items, vanished rule anchors, or a Gradle 10 release / upgrade-guide page.
 * Fixed the `archives-configuration` rule link: Gradle's own message points to `#sec:archives-configuration`, which no longer exists in the guide; the heading id is `archives-configuration`.
