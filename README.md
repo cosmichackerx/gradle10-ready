@@ -118,6 +118,17 @@ does not print the warning for a plain `gradle help`, or it only matters in an I
 **Suppressing:** a comment `// gradle10-ready: ignore space-assignment` on the line or the line above (no rule name = every rule);
 `--disable RULE`, `--only RULE`, `--ignore 'GLOB'` (repeatable).
 
+## PR mode: only what a pull request introduces
+
+A legacy build can have hundreds of findings; failing every PR on them is not useful. `--base REF` scans the Gradle files at the merge base of `REF` and `HEAD`, scans the working tree, and reports only the difference. Findings are matched by rule, file and source line text, so inserting lines above old code or renaming a file does not make old findings look new.
+
+```
+gradle10-ready . --base origin/main
+# 1 Gradle file(s) scanned. 1 error, 0 warning introduced since origin/main; 1 auto-fixable with --fix. Not shown: 3 that were already there; 0 resolved.
+```
+
+Needs git history (`actions/checkout` with `fetch-depth: 0`); exit code 2 with a hint if the base is missing. Cannot be combined with `--fix`.
+
 ## Kotlin delegate fixes
 
 `--fix` rewrites the single-line `val` declarations whose replacement the [Gradle upgrade guide](https://docs.gradle.org/current/userguide/upgrading_version_9.html#kotlin_dsl_delegated_properties) gives mechanically, and keeps declared types:
@@ -145,6 +156,19 @@ Left alone (reported only): `by tasks.creating` (`TaskContainer.create` is itsel
     # disable: "find-all-closure"
     # ignore: "legacy/**"
     # sarif-file: g10.sarif   # then upload with github/codeql-action/upload-sarif
+```
+
+Pull requests only, reporting what the PR introduces and keeping one comment up to date (needs `fetch-depth: 0` and `pull-requests: write`; the comment is skipped for fork PRs, whose token is read-only, and a missing permission never fails the job):
+
+```yaml
+permissions: { contents: read, pull-requests: write }
+steps:
+  - uses: actions/checkout@v4
+    with: { fetch-depth: 0 }
+  - uses: cosmichackerx/gradle10-ready@v0.2.0
+    with:
+      pr-mode: "true"      # base = the pull request base commit; or pass `base:`
+      comment: "true"
 ```
 
 Findings become annotations on the lines, and a Markdown table goes to the job summary. `action.yml` has the metadata the Marketplace

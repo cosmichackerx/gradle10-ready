@@ -21,13 +21,17 @@ def counts(r: Result) -> dict:
 def summary_line(r: Result) -> str:
     c = counts(r)
     fx = sum(1 for f in r.findings if f.edit)
+    if r.pr:
+        p = r.pr
+        return (f"{r.files_scanned} Gradle file(s) scanned. {c['error']} error, {c['warning']} warning introduced since {p['base']}; "
+                f"{fx} auto-fixable with --fix. Not shown: {p['existing']} that were already there; {p['resolved']} resolved.")
     return f"{r.files_scanned} Gradle file(s) scanned. {c['error']} error, {c['warning']} warning; {fx} auto-fixable with --fix."
 
 
 def render_text(r: Result) -> str:
     out: list = []
     if not r.findings:
-        out.append("No Gradle 10 findings.")
+        out.append("No new Gradle 10 findings." if r.pr else "No Gradle 10 findings.")
     last = None
     for f in sorted(r.findings, key=lambda f: (f.file, f.line)):
         if f.file != last:
@@ -47,13 +51,14 @@ def render_markdown(r: Result) -> str:
         for f in sorted(r.findings, key=lambda f: (ORDER[f.severity], f.file, f.line)):
             out.append(f"| {f.severity} | [`{f.rule}`]({f.url}) | `{f.file}:{f.line}` | {f.message.replace('|', chr(92) + '|')} |")
     else:
-        out.append("No findings.")
+        out.append("No new findings." if r.pr else "No findings.")
     return "\n".join(out) + "\n"
 
 
 def render_json(r: Result) -> str:
     return json.dumps({
         "tool": "gradle10-ready", "version": __version__, "filesScanned": r.files_scanned, "summary": counts(r),
+        **({"pullRequest": r.pr} if r.pr else {}),
         "findings": [{"rule": f.rule, "severity": f.severity, "file": f.file, "line": f.line, "column": f.col,
                       "message": f.message, "snippet": f.snippet, "fixable": bool(f.edit), "docs": f.url} for f in r.findings],
     }, indent=2) + "\n"

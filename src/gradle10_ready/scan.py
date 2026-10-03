@@ -57,6 +57,7 @@ class Result:
     findings: list = field(default_factory=list)
     files_scanned: int = 0
     fixed: int = 0
+    pr: dict | None = None  # set in PR mode (--base): {base, existing, resolved}
 
 
 def kind_of(name: str):
