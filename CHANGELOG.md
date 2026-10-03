@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.2 - 2026-10-03
+
+* `action.yml` description shortened to the GitHub Marketplace limit of 125 characters (it was longer, which blocks publishing); new CI job `action-metadata` checks name, description length and branding.
+
 ## 0.2.1 - 2026-10-03
 
 * **Gradle deprecation watch:** weekly workflow `gradle-watch.yml` runs `scripts/watch/watch_upgrade_guide.py`, which diffs the "Deprecations" sections of the Gradle 9 upgrade guide against the rule table and `scripts/watch/triaged.txt`, and opens one issue for new items, vanished rule anchors, or a Gradle 10 release / upgrade-guide page.
