@@ -18,6 +18,26 @@ constructs the Gradle 9.x upgrade guide lists as *deprecated, will be removed in
 > **Status of Gradle 10:** as of 2026-10-03 the current release I found is Gradle 9.8.0 and there is **no release date for Gradle 10 that I
 > could confirm**. This tool tells you how much work the documented removals are; it does not predict when they land.
 
+## At a glance
+
+|  | Lite (try it in a minute) | Full (keep it in CI) |
+|---|---|---|
+| How | `pipx install git+https://github.com/cosmichackerx/gradle10-ready` then `gradle10-ready .` (read-only; `--fix` is opt-in) | the [GitHub Action](#github-action), the [pre-commit](#pre-commit) hook, [PR mode](#pr-mode-only-what-a-pull-request-introduces) and the weekly [deprecation watch](#deprecation-watch-keeps-the-rule-table-honest) |
+
+### Validation / results
+
+Every number below is from this repository's own tests or scripts (see the linked sections). "Not proven" is as important as "Result".
+
+| What is claimed | Checked against | Size | Result | Not proven |
+|---|---|---|---|---|
+| It reports the same lines Gradle warns about | Real Gradle: Groovy DSL and Kotlin DSL on 9.8.0, Android on 8.14.3 + AGP 8.13.2 (CI) | Groovy 22 pairs, Kotlin DSL 11 lines, Android 32 pairs | 22/22, 11/11 and 32/32 identical lines (2026-10-03) | Only what I wrote into the three oracle projects; rules marked **docs** are not covered |
+| `--fix` stops the warnings | `--fix-check` on the Groovy and Android projects | 2 projects | Gradle no longer warns about fixed lines and the build still succeeds | Mechanical rewrites only |
+| Precision on real projects | 100 public Android repositories ([docs/precision.md](docs/precision.md)) | 99 with Gradle files, 64 with a finding; 40 random findings read by hand | all 40 were genuine uses of the flagged construct | The sample was read by the author; popular repositories, not random Gradle builds |
+| Recall | - | - | **Not measured** | How many Gradle 10 breakages a real build has that the tool misses |
+| Rule logic | Unit tests on Linux, Windows, macOS | 148 tests | green | - |
+
+**Releases:** 4 releases, v0.1.0 to v0.2.2, all published on 2026-10-03 (days old). See [CHANGELOG.md](CHANGELOG.md) and the [Releases page](https://github.com/cosmichackerx/gradle10-ready/releases); the weekly deprecation watch opens an issue when Gradle's deprecation list changes.
+
 ## Install and run
 
 ```
