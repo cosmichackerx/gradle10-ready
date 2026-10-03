@@ -136,7 +136,7 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
-      - uses: cosmichackerx/dependabot-gaps@v0.2.0
+      - uses: cosmichackerx/dependabot-gaps@v0.2.1
         with:
           fail-on: warning
           pr-mode: ${{ github.event_name == 'pull_request' && 'true' || 'false' }}
@@ -198,3 +198,35 @@ jobs:
           m="$(gh api "$url" --paginate --jq '[.[] | select((.body | startswith("<!-- gradle10-ready:sticky -->")) and (.body | contains("introduced since")))] | length' | awk '{s+=$1} END{print s+0}')"
           echo "sticky comments: $n, PR-mode ones: $m"
           test "$n" = "1" && test "$m" = "1"
+
+  pre-commit:
+    name: pre-commit hook (try-repo)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v6
+        with:
+          python-version: "3.13"
+      - name: The hook reports legacy files and the fix hook rewrites them
+        env:
+          GIT_AUTHOR_NAME: ci
+          GIT_AUTHOR_EMAIL: ci@example.invalid
+          GIT_COMMITTER_NAME: ci
+          GIT_COMMITTER_EMAIL: ci@example.invalid
+        run: |
+          pip install pre-commit
+          d="$RUNNER_TEMP/pc"; mkdir -p "$d/app"; cd "$d"; git init -q
+          printf "plugins { id 'java' }\ngroup 'x'\n" > build.gradle
+          printf "version '1'\nimplementation group: 'a', name: 'b', version: '1'\n" > app/build.gradle
+          echo hi > README.md
+          git add -A; git commit -qm init
+          if pre-commit try-repo "$GITHUB_WORKSPACE" gradle10-ready --all-files; then echo "expected the hook to fail on legacy files"; exit 1; fi
+          if pre-commit try-repo "$GITHUB_WORKSPACE" gradle10-ready-fix --all-files; then echo "expected the fix hook to fail once (files modified)"; exit 1; fi
+          grep -q "group = 'x'" build.gradle
+          grep -q "implementation 'a:b:1'" app/build.gradle
+          git add -A
+          pre-commit try-repo "$GITHUB_WORKSPACE" gradle10-ready --all-files

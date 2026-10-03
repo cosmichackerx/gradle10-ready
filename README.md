@@ -129,6 +129,19 @@ gradle10-ready . --base origin/main
 
 Needs git history (`actions/checkout` with `fetch-depth: 0`); exit code 2 with a hint if the base is missing. Cannot be combined with `--fix`.
 
+## pre-commit
+
+```yaml
+repos:
+  - repo: https://github.com/cosmichackerx/gradle10-ready
+    rev: v0.2.0
+    hooks:
+      - id: gradle10-ready          # reports; add args: ["--fail-on", "warning"] to be stricter
+      # - id: gradle10-ready-fix    # or: rewrite the mechanical fixes (pre-commit then fails once so you can review the diff)
+```
+
+The hook runs on `*.gradle`, `*.gradle.kts` and `gradle.properties` files only. Several files on the command line are scanned together and keep the path they were given.
+
 ## Kotlin delegate fixes
 
 `--fix` rewrites the single-line `val` declarations whose replacement the [Gradle upgrade guide](https://docs.gradle.org/current/userguide/upgrading_version_9.html#kotlin_dsl_delegated_properties) gives mechanically, and keeps declared types:
