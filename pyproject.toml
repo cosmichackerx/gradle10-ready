@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "gradle10-ready"
-version = "0.1.0"
+version = "0.2.0"
 description = "Find what Gradle 10 removes in your build scripts without running Gradle: Groovy space-assignment, multi-string dependency notation, Kotlin DSL delegated properties, project.properties and more. Auto-fix, SARIF and GitHub Action included."
 readme = "README.md"
 requires-python = ">=3.9"
