@@ -162,7 +162,7 @@ Left alone (reported only): `by tasks.creating` (`TaskContainer.create` is itsel
 
 ```yaml
 - uses: actions/checkout@v4
-- uses: cosmichackerx/gradle10-ready@v0.1.0
+- uses: cosmichackerx/gradle10-ready@v0.2.0
   with:
     fail-on: error            # error | warning | never
     # path: .                 # project directory or one build file

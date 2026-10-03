@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.2.0 - 2026-10-03
 
 * **pre-commit hooks** `gradle10-ready` and `gradle10-ready-fix` (`.pre-commit-hooks.yaml`); the command line accepts several paths. CI runs `pre-commit try-repo` against both hooks.
 * **PR mode:** `--base REF` reports only findings new compared to the merge base (matched by rule, file and line text; renames followed). Action inputs `pr-mode`, `base`.
