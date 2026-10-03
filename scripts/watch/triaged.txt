@@ -1,0 +1,40 @@
+# Deprecation anchors from the Gradle 9 upgrade guide that gradle10-ready has looked at and does not (yet) have a rule for.
+# Format: anchor  # reason. Anchors cited by a rule in src/gradle10_ready/rules.py do not need to be listed.
+# Everything below was recorded as a BASELINE on 2026-10-03 when the watcher was introduced: it means
+# "known when the watcher started", NOT "reviewed and rejected". Work through them for new rules.
+config_time_external_processes  # baseline: 9.8.0 Deprecation of starting external processes at configuration time with ExecOperations and Java/Groovy standard APIs
+deprecate_implicit_dependencies_between_builds  # baseline: 9.8.0 Deprecation of implicit task dependencies between builds
+deprecated_startparameter_construction  # baseline: 9.8.0 Deprecation of creating and copying StartParameter
+deprecate_signature_as_artifact  # baseline: 9.8.0 Deprecation of Signature as a Configuration artifact
+deprecate_signature_constructors  # baseline: 9.8.0 Deprecation of constructing Signature instances
+deprecate_sign_operation_signatures  # baseline: 9.8.0 Deprecation of getSignatures() and getSingleSignature() on SignOperation
+deprecate_sign_classifier  # baseline: 9.8.0 Deprecation of signing files with a classifier
+unsupported_attribute_value_type  # baseline: 9.8.0 Deprecation of unsupported attribute value types
+kgp_native_bundle_attribute_enum  # baseline: 9.8.0 Deprecation of using KotlinNativeBundleArtifactsTypes as an attribute value type
+deprecated_macos_amd64  # baseline: 9.8.0 Deprecation of macOS on AMD64
+deprecated_software_model  # baseline: 9.7.0 Deprecation of the software model
+deprecated_custom_collection_types_with_cc  # baseline: 9.7.0 Deprecation of serializing custom collection and map types with the configuration cache
+deprecated_implicit_lookup_in_parent_projects  # baseline: 9.6.0 Deprecation of implicit lookup of properties and methods in parent projects
+task_dependencies  # baseline: 9.6.0 Deprecation of accessing task dependency relationships from a task action
+task_extensions  # baseline: 9.6.0 Deprecation of accessing extensions from a task action
+injected_service_types_at_execution  # baseline: 9.6.0 Deprecation of accessing injected Project or Gradle services from a task action
+task_in_task_dependency_closure  # baseline: 9.6.0 Deprecation of accessing Task in dependsOn closures
+undeclared_artifact_transform_input  # baseline: 9.6.0 Deprecation of undeclared Artifact Transform execution by tasks
+dependency_project_notation  # baseline: 9.6.0 Deprecation of using Project objects as dependency notation
+deprecate_getTaskDependencyFromProjectDependency  # baseline: 9.6.0 Deprecation of Configuration.getTaskDependencyFromProjectDependency()
+ide_task_deprecation  # baseline: 9.6.0 Deprecation of file generation tasks of IDE plugins
+deprecate_problem_spec_severity  # baseline: 9.6.0 Deprecation of ProblemSpec.severity()
+deprecate_exit_environment_var  # baseline: 9.5.0 Deprecation of setting an exit environment variable
+deprecate_version_in_precompiled_settings_script_plugins  # baseline: 9.4.0 Deprecation of version in precompiled Settings script plugins
+v9_deprecation_of_dependencies_get_project  # baseline: 9.4.0 Deprecation of Dependencies.getProject() method
+deprecated_wrapper_get_available_distribution_types  # baseline: 9.3.0 Deprecation of the Wrapper.getAvailableDistributionTypes() method
+publishing_dependency_on_unpublished_project  # baseline: 9.3.0 Deprecation of publishing dependencies on unpublished projects
+deprecate_legacy_usage_values  # baseline: 9.3.0 Deprecation of legacy Usage attribute values
+module_identity_for_root_component  # baseline: 9.3.0 Deprecation of using module coordinates to depend on the current project
+deprecate_moduleversionselector_to_modulecomponentselector  # baseline: 9.3.0 Deprecation of ModuleVersionSelector to ModuleComponentSelector conversion
+dependency_management_rules  # baseline: 9.2.0 Deprecation of ruleSource-based dependency management APIs
+deprecate_register_feature_no_java_plugin  # baseline: 9.2.0 Deprecation of calling registerFeature without applying the Java plugin
+reporting_extension_api_doc_title  # baseline: 9.1.0 Deprecation of ReportingExtension.getApiDocTitle()
+deprecate-visible-property  # baseline: 9.1.0 Deprecation of the Configuration.visible property
+deprecated-gradle-build-non-string-properties  # baseline: 9.1.0 Deprecation of non-string projectProperties in GradleBuild task
+toolchain-project-properties  # baseline: 9.1.0 Deprecation of project properties for toolchain configuration
