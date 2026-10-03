@@ -1,3 +1,5 @@
+import json
+from gradle10_ready.cli import main
 import os
 import subprocess
 import sys
@@ -49,3 +51,27 @@ def test_output_file(tmp_path):
     out = tmp_path / "r.sarif"
     run(str(tmp_path), "-f", "sarif", "-o", str(out), "--fail-on", "never")
     assert '"version": "2.1.0"' in out.read_text()
+
+
+def test_several_files_keep_the_path_they_were_given(tmp_path, capsys):
+    (tmp_path / "app").mkdir()
+    (tmp_path / "build.gradle").write_text("group 'x'\n")
+    (tmp_path / "app" / "build.gradle").write_text("version '1'\n")
+    (tmp_path / "ok.gradle").write_text("group = 'x'\n")
+    cwd = os.getcwd()
+    os.chdir(tmp_path)
+    try:
+        assert main(["build.gradle", "app/build.gradle", "ok.gradle", "-f", "json"]) == 1
+    finally:
+        os.chdir(cwd)
+    d = json.loads(capsys.readouterr().out)
+    assert sorted(f["file"] for f in d["findings"]) == ["app/build.gradle", "build.gradle"]
+    assert d["filesScanned"] == 3
+
+
+def test_fix_accepts_several_files(tmp_path):
+    a, b = tmp_path / "a.gradle", tmp_path / "b.gradle"
+    a.write_text("group 'x'\n")
+    b.write_text("version '1'\n")
+    assert main([str(a), str(b), "--fix"]) == 0
+    assert a.read_text() == "group = 'x'\n" and b.read_text() == "version = '1'\n"

@@ -1,0 +1,14 @@
+- id: gradle10-ready
+  name: gradle10-ready (what Gradle 10 removes)
+  description: Report constructs in Gradle build scripts that Gradle 10 removes (Groovy space-assignment, multi-string dependencies, Kotlin DSL delegates, ...).
+  entry: gradle10-ready
+  language: python
+  files: '(^|/)(([^/]+\.gradle(\.kts)?)|gradle\.properties)$'
+  require_serial: true
+- id: gradle10-ready-fix
+  name: gradle10-ready --fix (rewrite what Gradle 10 removes)
+  description: Apply the mechanical fixes (space-assignment, multi-string dependencies, Kotlin DSL delegates); pre-commit then fails so you can review the diff.
+  entry: gradle10-ready --fix
+  language: python
+  files: '(^|/)(([^/]+\.gradle(\.kts)?)|gradle\.properties)$'
+  require_serial: true

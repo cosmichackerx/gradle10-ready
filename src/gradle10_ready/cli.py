@@ -2,18 +2,19 @@
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 
 from . import __version__
 from .report import RENDERERS, meets_threshold
 from .rules import RULES
 from .diffmode import GitError, scan_against_base
-from .scan import apply_fixes, scan
+from .scan import Result, apply_fixes, scan
 
 
 def main(argv=None) -> int:
     p = argparse.ArgumentParser(prog="gradle10-ready", description="Find what Gradle 10 removes in your build scripts, without running Gradle.")
-    p.add_argument("path", nargs="?", default=".", help="project directory (or one build file)")
+    p.add_argument("path", nargs="*", default=["."], help="project directory or build file(s) (default: .); several files are what pre-commit passes")
     p.add_argument("-f", "--format", choices=sorted(RENDERERS), default="text")
     p.add_argument("-o", "--output", help="write the report to a file instead of stdout")
     p.add_argument("--fail-on", choices=["error", "warning", "never"], default="error", help="lowest severity that gives exit code 1 (default: error)")
@@ -33,20 +34,33 @@ def main(argv=None) -> int:
         if rid not in RULES:
             print(f"unknown rule: {rid} (see --list-rules)", file=sys.stderr)
             return 2
+    if len(a.path) > 1 and a.base:
+        print("--base takes a single path", file=sys.stderr)
+        return 2
     if a.base and a.fix:
         print("--base and --fix cannot be combined", file=sys.stderr)
         return 2
     if a.fix:
-        files, edits = apply_fixes(a.path, a.ignore, a.disable, a.only)
+        files = edits = 0
+        for path in a.path:
+            f, e = apply_fixes(path, a.ignore, a.disable, a.only)
+            files, edits = files + f, edits + e
         print(f"fixed {edits} place(s) in {files} file(s)", file=sys.stderr)
     if a.base:
         try:
-            r = scan_against_base(a.path, a.base, a.ignore, a.disable, a.only)
+            r = scan_against_base(a.path[0], a.base, a.ignore, a.disable, a.only)
         except GitError as e:
             print(f"gradle10-ready: {e}", file=sys.stderr)
             return 2
     else:
-        r = scan(a.path, a.ignore, a.disable, a.only)
+        r = Result()
+        for path in a.path:
+            one = scan(path, a.ignore, a.disable, a.only)
+            if os.path.isfile(path) and len(a.path) > 1:  # a single file is reported as its basename; several files keep the path they were given
+                for f in one.findings:
+                    f.file = os.path.normpath(path).replace(os.sep, "/")
+            r.findings += one.findings
+            r.files_scanned += one.files_scanned
     text = RENDERERS[a.format](r)
     if a.output:
         with open(a.output, "w", encoding="utf-8", newline="") as fh:
