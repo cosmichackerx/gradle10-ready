@@ -131,6 +131,62 @@ def test_kotlin_delegates_reported(src):
     assert [r for r, _ in rules(src, "kotlin", "build.gradle.kts")] == ["kotlin-dsl-delegate"]
 
 
+def fixed_kts(text):
+    return apply_to(text, "build.gradle.kts")
+
+
+def apply_to(text, name, tmp=None):
+    import tempfile
+    d = tempfile.mkdtemp()
+    p = os.path.join(d, name)
+    with open(p, "w", newline="") as fh:
+        fh.write(text)
+    apply_fixes(d)
+    with open(p, newline="") as fh:
+        return fh.read()
+
+
+@pytest.mark.parametrize("src,expected", [
+    ("val jar by tasks.getting", 'val jar = tasks.getByName("jar")'),
+    ("val hello by tasks.registering { }", 'val hello = tasks.register("hello") { }'),
+    ("val c by tasks.getting(JavaCompile::class) {\n    x()\n}", 'val c = tasks.getByName<JavaCompile>("c") {\n    x()\n}'),
+    ("val r by tasks.registering(Copy::class)", 'val r = tasks.register<Copy>("r")'),
+    ("val t by tasks.existing", 'val t = tasks.named("t")'),
+    ("val cfg by configurations.creating { isCanBeResolved = false }", 'val cfg = configurations.create("cfg") { isCanBeResolved = false }'),
+    ("val ss by sourceSets.getting", 'val ss = sourceSets.getByName("ss")'),
+    ("val p: String by project", 'val p: String = project.property("p") as String'),
+    ("val p: String? by project", 'val p: String? = project.findProperty("p") as String?'),
+    ("val g: String by extra", 'val g: String = extra["g"] as String'),
+    ("val g: Int? by rootProject.extra", 'val g: Int? = rootProject.extra["g"] as Int?'),
+    ('  val v by extra("x")', '  val v = "x"\n  extra["v"] = v'),
+    ("val n by extra(listOf(1, 2).size) // c", 'val n = listOf(1, 2).size\nextra["n"] = n // c'),
+])
+def test_kotlin_delegate_autofix(src, expected):
+    assert fixed_kts(src + "\n") == expected + "\n"
+    assert rules(expected, "kotlin", "build.gradle.kts") == []
+
+
+@pytest.mark.parametrize("src", [
+    "val t by tasks.creating",                     # TaskContainer.create is itself deprecated: register vs create is a human decision
+    "val x by registering",                        # implicit receiver
+    "val x: Task by tasks.getting",                # type annotation on a container delegate
+    "val s: String? by settings",                  # property or extra? only a human knows
+    "var m: String by extra",                      # var: writes would no longer reach extra
+    "val l by extra { 1 }",                        # lambda form
+    "val e by extra(compute(\n  1))",              # multi-line expression
+    "val p: String by rootProject",
+    "val q by project",                            # no type to carry over
+])
+def test_kotlin_delegate_not_autofixed(src):
+    assert fixed_kts(src + "\n") == src + "\n"
+
+
+def test_kotlin_delegate_autofix_is_idempotent(tmp_path):
+    (tmp_path / "build.gradle.kts").write_text('val a by tasks.getting\nval b: String by extra\n')
+    assert apply_fixes(str(tmp_path)) == (1, 2)
+    assert apply_fixes(str(tmp_path)) == (0, 0)
+
+
 @pytest.mark.parametrize("src", [
     "val x by lazy { 1 }", "val e = extra[\"x\"]", "val t = tasks.register(\"x\")", "val p = providers.gradleProperty(\"x\")",
     "// val x by project", 'val s = "by project"', "class A { val x by inject<Foo>() }",

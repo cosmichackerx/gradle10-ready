@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+* `--fix` for `kotlin-dsl-delegate`: container delegates (`registering`, `creating`, `existing`, `getting`, with optional `(Type::class)`), `val x: T by project`, `val x: T by extra` and `val x by extra(expr)`. Verified with `--fix-check` on real Gradle 9.8.0 (now also run for the Kotlin DSL project in CI).
+
 ## 0.1.0 - 2026-10-03
 
 First release.

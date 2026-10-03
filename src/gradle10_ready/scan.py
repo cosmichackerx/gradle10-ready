@@ -256,24 +256,77 @@ def _coords(kv: dict, kotlin: bool):
     return "'" + s + "'"
 
 
+_CONTAINER_METHOD = {"registering": "register", "creating": "create", "existing": "named", "getting": "getByName"}
+_VAL_BEFORE = re.compile(r"^(?P<indent>[ \t]*)(?:(?:private|internal|public)[ \t]+)?val[ \t]+(?P<name>\w+)(?:[ \t]*:[ \t]*(?P<type>[\w.]+(?:<[\w.<>, ?]*>)?\??))?[ \t]+$")
+_TYPE_ARG = re.compile(r"[ \t]*\([ \t]*(?P<t>[A-Za-z_][\w.]*)::class[ \t]*\)")
+
+
+def _delegate_fix(c: Ctx, by: int, kind: str, recv: str, end: int):
+    """(start, end, replacement) for `val x [: T] by <delegate>` when the rewrite from the Gradle upgrade guide is mechanical, else None.
+    `by` is the offset of the keyword, `end` the end of the delegate name; only single-line `val` declarations are rewritten."""
+    ls = c.text.rfind("\n", 0, by) + 1
+    m = _VAL_BEFORE.match(c.code[ls:by])
+    if not m:
+        return None
+    name, typ = m.group("name"), m.group("type")
+    if kind in _CONTAINER_METHOD:
+        if typ or not recv:
+            return None  # a type annotation or an implicit receiver: leave it to a human
+        if kind == "creating" and recv.split(".")[-1] == "tasks":
+            return None  # TaskContainer.create(name, Action) is itself deprecated in Gradle 9 (Kotlin compiler warning); register vs create is a human decision
+        t = _TYPE_ARG.match(c.code, end)
+        targ = ""
+        if t:
+            targ, end = "<%s>" % t.group("t"), t.end()
+        return (by, end, '= %s.%s%s("%s")' % (recv, _CONTAINER_METHOD[kind], targ, name))
+    nxt = c.code[end:end + 1]
+    if kind == "project" and not recv and typ and nxt not in ("(", "."):
+        call = "findProperty" if typ.endswith("?") else "property"
+        return (by, end, '= project.%s("%s") as %s' % (call, name, typ))
+    if kind == "extra":
+        access = (recv + "." if recv else "") + "extra"
+        if typ and nxt not in ("(", "{", "."):
+            return (by, end, '= %s["%s"] as %s' % (access, name, typ))
+        if not typ and nxt == "(":
+            close, depth = None, 0
+            for i in range(end, len(c.code)):
+                ch = c.code[i]
+                if ch == "\n":
+                    break
+                depth += ch == "("
+                depth -= ch == ")"
+                if depth == 0:
+                    close = i
+                    break
+            rest_end = c.code.find("\n", close if close else 0)
+            rest = c.code[(close or 0) + 1:rest_end if rest_end >= 0 else len(c.code)]
+            expr = c.text[end + 1:close].strip() if close else ""
+            if close and expr and not rest.strip():
+                return (ls + len(m.group("indent")), close + 1,
+                        'val %s = %s\n%s%s["%s"] = %s' % (name, expr, m.group("indent"), access, name, name))
+    return None
+
+
 def kotlin_delegates(c: Ctx):
     if not c.kotlin:
         return
     pats = [
-        (r"\bby\s+(?:[\w]+\.)*(registering|creating|existing|getting)\b", "container delegate `by {}`"),
-        (r"\bby\s+(?:(?:rootProject|parent)\.)?(project|settings|extensions)\b", "`by {}` property delegate"),
-        (r"\bby\s+(?:[\w]+\.)*(extra)\b", "`by extra` property delegate"),
+        (r"\bby\s+(?P<recv>(?:[\w]+\.)*?)(?P<kind>registering|creating|existing|getting)\b", "container"),
+        (r"\bby\s+(?:(?:rootProject|parent)\.)?(?P<kind>project|settings|extensions)\b", "property"),
+        (r"\bby\s+(?P<recv>(?:[\w]+\.)*?)(?P<kind>extra)\b", "extra"),
     ]
     seen = set()
-    for pat, what in pats:
+    for pat, _ in pats:
         for m in re.finditer(pat, c.nostr):
             if m.start() in seen:
                 continue
             seen.add(m.start())
-            word = m.group(1)
-            c.add("kotlin-dsl-delegate", m.start(), f"Kotlin DSL delegate `by {word}` is removed in Gradle 10; use the explicit API.")
-    if re.search(r"\bby\s+\w+\.(?:getting|existing)\b", ""):
-        pass
+            word = m.group("kind")
+            recv = (m.groupdict().get("recv") or "").rstrip(".")
+            edit = None
+            if not (word in ("project", "settings", "extensions") and re.match(r"by\s+(?:rootProject|parent)\.", m.group(0))):
+                edit = _delegate_fix(c, m.start(), word, recv, m.end())
+            c.add("kotlin-dsl-delegate", m.start(), f"Kotlin DSL delegate `by {word}` is removed in Gradle 10; use the explicit API.", edit=edit)
 
 
 def simple_patterns(c: Ctx):

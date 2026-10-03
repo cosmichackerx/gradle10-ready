@@ -94,7 +94,7 @@ does not print the warning for a plain `gradle help`, or it only matters in an I
 | `space-assignment` | error | yes | oracle | Groovy `propName value` for Gradle core properties (`url`, `name`, `group`, `version`, `description`, `sourceCompatibility`, `maxHeapSize`, ...) |
 | `space-assignment-android` | warning | yes | oracle (AGP 8.13.2) | the same for Android Gradle Plugin properties (`namespace`, `viewBinding`, `abortOnError`, `shrinkResources`, `signingConfig`, ...). `compileSdk`, `minSdk`, `targetSdk`, `versionCode`, `versionName`, `applicationId`, `minifyEnabled` have explicit methods in AGP and are **not** reported |
 | `multi-string-dependency` | error | yes | oracle | `implementation group: 'a', name: 'b', version: 'c'` |
-| `kotlin-dsl-delegate` | error | no | oracle | `by extra`, `by project`, `by settings`, `by tasks.getting / registering / creating / existing` |
+| `kotlin-dsl-delegate` | error | partly | oracle | `by extra`, `by project`, `by settings`, `by tasks.getting / registering / creating / existing` (see [Kotlin delegate fixes](#kotlin-delegate-fixes)) |
 | `project-properties` | error | no | oracle | `project.properties` / `getProperties()` |
 | `test-closure-methods` | error | no | oracle | `beforeTest { }`, `afterTest { }`, `beforeSuite { }`, `afterSuite { }`, `onOutput { }` on Test tasks |
 | `flatdir-map` | error | no | oracle | `flatDir dirs: 'libs'`, `mavenCentral(name: ...)` |
@@ -117,6 +117,22 @@ does not print the warning for a plain `gradle help`, or it only matters in an I
 
 **Suppressing:** a comment `// gradle10-ready: ignore space-assignment` on the line or the line above (no rule name = every rule);
 `--disable RULE`, `--only RULE`, `--ignore 'GLOB'` (repeatable).
+
+## Kotlin delegate fixes
+
+`--fix` rewrites the single-line `val` declarations whose replacement the [Gradle upgrade guide](https://docs.gradle.org/current/userguide/upgrading_version_9.html#kotlin_dsl_delegated_properties) gives mechanically, and keeps declared types:
+
+| before | after |
+|---|---|
+| `val jar by tasks.getting` | `val jar = tasks.getByName("jar")` |
+| `val h by tasks.registering { }` | `val h = tasks.register("h") { }` |
+| `val c by tasks.getting(JavaCompile::class) { ... }` | `val c = tasks.getByName<JavaCompile>("c") { ... }` |
+| `val t by tasks.existing` | `val t = tasks.named("t")` |
+| `val p: String? by project` | `val p: String? = project.findProperty("p") as String?` |
+| `val g: String by extra` | `val g: String = extra["g"] as String` |
+| `val v by extra("x")` | `val v = "x"` and a line `extra["v"] = v` |
+
+Left alone (reported only): `by tasks.creating` (`TaskContainer.create` is itself deprecated in Gradle 9; whether you want `register` is your call), implicit receivers, annotated container delegates, `by settings` (Gradle property or extra?), `var`, lambda and multi-line forms, `by project` without a type. Checked with `--fix-check` against real Gradle 9.8.0: the Kotlin compiler's deprecation warnings go from 11 to the 2 that are reported-only, and the build still succeeds.
 
 ## GitHub Action
 
