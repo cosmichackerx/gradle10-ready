@@ -14,6 +14,10 @@ sys.path.insert(0, os.path.join(HERE, "..", "..", "src"))
 from gradle10_ready.scan import scan  # noqa: E402
 
 
+# Gradle's own message links to an anchor that is not in the guide (found by scripts/watch); the heading id is the value.
+ANCHOR_ALIASES = {"sec:archives-configuration": "archives-configuration"}
+
+
 def gradle_warnings(project, build_file, gradle):
     out = subprocess.run([gradle, "help", "--warning-mode", "all", "--no-daemon", "--console=plain"], cwd=project,
                          stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, timeout=600).stdout
@@ -25,7 +29,7 @@ def gradle_warnings(project, build_file, gradle):
             continue
         a = re.search(r"upgrading_version_\d+\.html#(\S+)", ln)
         if a and line:
-            got.add((line, a.group(1)))
+            got.add((line, ANCHOR_ALIASES.get(a.group(1), a.group(1))))
             line = None
     return got, out
 
