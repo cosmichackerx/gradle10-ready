@@ -7,6 +7,8 @@ multi-string / map dependency notation (`group: 'x', name: 'y'`), Kotlin DSL *de
 GitHub annotations, and ships as a **GitHub Action**.
 
 [![CI](https://github.com/cosmichackerx/gradle10-ready/actions/workflows/ci.yml/badge.svg)](https://github.com/cosmichackerx/gradle10-ready/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/cosmichackerx/gradle10-ready?sort=semver)](https://github.com/cosmichackerx/gradle10-ready/releases)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 Why a static scanner? Gradle already warns about these things when you run `./gradlew --warning-mode all`, but only for code that your
 build actually executes, only on a build that still works, and only on the Gradle version you run. This reads the files and finds the
