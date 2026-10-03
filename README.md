@@ -1,0 +1,174 @@
+# gradle10-ready
+
+**Find what Gradle 10 removes in your build scripts, without running Gradle.** A zero-dependency static scanner (Python 3.9+) for
+`build.gradle`, `build.gradle.kts`, `settings.gradle(.kts)` and `gradle.properties`: Groovy *space-assignment* (`url "..."`, `namespace "..."`),
+multi-string / map dependency notation (`group: 'x', name: 'y'`), Kotlin DSL *delegated properties* (`val x by extra`, `by tasks.getting`),
+`project.properties`, Closure-based test listeners and more. It can **rewrite the mechanical ones for you** (`--fix`), emits **SARIF** and
+GitHub annotations, and ships as a **GitHub Action**.
+
+[![CI](https://github.com/cosmichackerx/gradle10-ready/actions/workflows/ci.yml/badge.svg)](https://github.com/cosmichackerx/gradle10-ready/actions/workflows/ci.yml)
+
+Why a static scanner? Gradle already warns about these things when you run `./gradlew --warning-mode all`, but only for code that your
+build actually executes, only on a build that still works, and only on the Gradle version you run. This reads the files and finds the
+constructs the Gradle 9.x upgrade guide lists as *deprecated, will be removed in Gradle 10*. Most rules are checked against real Gradle in CI
+(see [How it is verified](#how-it-is-verified)).
+
+> **Status of Gradle 10:** as of 2026-10-03 the current release I found is Gradle 9.8.0 and there is **no release date for Gradle 10 that I
+> could confirm**. This tool tells you how much work the documented removals are; it does not predict when they land.
+
+## Install and run
+
+```
+pipx install git+https://github.com/cosmichackerx/gradle10-ready      # or: pip install git+https://github.com/cosmichackerx/gradle10-ready
+gradle10-ready .                    # scan the current project
+gradle10-ready . --fix              # apply the mechanical fixes, then report what is left
+gradle10-ready . -f sarif -o g10.sarif --fail-on never
+```
+
+From a checkout without installing: `PYTHONPATH=src python -m gradle10_ready .`
+
+## Example output
+
+`tests/fixtures/legacy-app` is a small Android project written the way many still are. Real output:
+
+```
+app/build.gradle
+      6  warning space-assignment-android   `namespace ...` is Gradle's generated space-assignment; write `namespace = ...`.
+         > namespace "com.example.app"
+     19  warning space-assignment-android   `shrinkResources ...` is Gradle's generated space-assignment; write `shrinkResources = ...`.
+         > shrinkResources true
+     25  error   multi-string-dependency    `implementation` uses named/map dependency notation; use the single string `group:name:version`.
+         > implementation group: 'com.squareup.okhttp3', name: 'okhttp', version: '4.12.0'
+     26  error   multi-string-dependency    `implementation` uses named/map dependency notation; use the single string `group:name:version`.
+         > implementation(group: 'com.google.guava', name: 'guava', version: '33.0.0-android')
+     31  error   space-assignment           `maxHeapSize ...` is Gradle's generated space-assignment; write `maxHeapSize = ...`.
+         > maxHeapSize "1g"
+     32  error   test-closure-methods       Test task methods taking a Groovy Closure (beforeTest, afterTest, beforeSuite, afterSuite, onOutput) are removed in Gradle 10
+         > afterSuite { desc, result -> println "${desc.name}: ${result.resultType}" }
+     35  error   project-properties         Project.getProperties() / project.properties is removed in Gradle 10
+         > def signing = project.properties['releaseKeyPassword']
+
+build.gradle
+      4  error   space-assignment           `url ...` is Gradle's generated space-assignment; write `url = ...`.
+         > maven { url "https://jitpack.io" }
+      9  error   space-assignment           `group ...` is Gradle's generated space-assignment; write `group = ...`.
+         > group 'com.example'
+     10  error   space-assignment           `version ...` is Gradle's generated space-assignment; write `version = ...`.
+         > version '1.0'
+
+gradle.properties
+      2  warning tooling-parallel-implicit  org.gradle.parallel=true without org.gradle.tooling.parallel: the implicit link is an error in Gradle 10 during IDE model building
+         > org.gradle.parallel=true
+      3  warning isolated-projects-unsafe-names `org.gradle.unsafe.isolated-projects` is deprecated; use `org.gradle.isolated-projects`.
+         > org.gradle.unsafe.isolated-projects=false
+
+4 Gradle file(s) scanned. 8 error, 4 warning; 9 auto-fixable with --fix.
+```
+
+`--fix` rewrites the 9 fixable places (space-assignment, multi-string notation, renamed `gradle.properties` keys), leaves the rest for a human,
+and a re-run then reports `2 error, 1 warning`:
+
+```diff
+-    namespace "com.example.app"
++    namespace = "com.example.app"
+...
+-    implementation group: 'com.squareup.okhttp3', name: 'okhttp', version: '4.12.0'
+-    implementation(group: 'com.google.guava', name: 'guava', version: '33.0.0-android')
++    implementation 'com.squareup.okhttp3:okhttp:4.12.0'
++    implementation('com.google.guava:guava:33.0.0-android')
+...
+-    maxHeapSize "1g"
++    maxHeapSize = "1g"
+```
+
+Exit code is `1` when an `error` is found (`--fail-on error`, the default), so it works as a CI gate. `--fail-on warning` also fails on
+warnings, `--fail-on never` only reports.
+
+## Rules (21)
+
+`oracle` = reproduced and compared with real Gradle in CI. `docs` = taken from the Gradle upgrade guide and pattern-tested only (Gradle
+does not print the warning for a plain `gradle help`, or it only matters in an IDE sync).
+
+| Rule | Severity | Fix | Checked | What Gradle 10 changes |
+|---|---|---|---|---|
+| `space-assignment` | error | yes | oracle | Groovy `propName value` for Gradle core properties (`url`, `name`, `group`, `version`, `description`, `sourceCompatibility`, `maxHeapSize`, ...) |
+| `space-assignment-android` | warning | yes | oracle (AGP 8.13.2) | the same for Android Gradle Plugin properties (`namespace`, `viewBinding`, `abortOnError`, `shrinkResources`, `signingConfig`, ...). `compileSdk`, `minSdk`, `targetSdk`, `versionCode`, `versionName`, `applicationId`, `minifyEnabled` have explicit methods in AGP and are **not** reported |
+| `multi-string-dependency` | error | yes | oracle | `implementation group: 'a', name: 'b', version: 'c'` |
+| `kotlin-dsl-delegate` | error | no | oracle | `by extra`, `by project`, `by settings`, `by tasks.getting / registering / creating / existing` |
+| `project-properties` | error | no | oracle | `project.properties` / `getProperties()` |
+| `test-closure-methods` | error | no | oracle | `beforeTest { }`, `afterTest { }`, `beforeSuite { }`, `afterSuite { }`, `onOutput { }` on Test tasks |
+| `flatdir-map` | error | no | oracle | `flatDir dirs: 'libs'`, `mavenCentral(name: ...)` |
+| `artifact-urls` | error | no | oracle | `maven { artifactUrls ... }` |
+| `archives-configuration` | warning | no | oracle | `artifacts { archives ... }` |
+| `set-all-jvm-args` | error | no | oracle | `setAllJvmArgs(...)` / `allJvmArgs = ...` |
+| `start-parameter-build-cache` | error | no | oracle | `gradle.startParameter.buildCacheEnabled = true` (assignments only) |
+| `reporting-extension` | error | no | oracle | `reporting.file('x')` |
+| `pmd-target-jdk` | error | no | oracle | `targetJdk` in the PMD plugin |
+| `find-all-closure` | warning | no | oracle | `tasks.findAll { }` on Gradle collections |
+| `build-needed-dependents` | warning | no | docs | the `buildNeeded` / `buildDependents` tasks |
+| `project-container` | warning | no | docs | `project.container(...)` |
+| `apply-false-precompiled` | error | no | docs | `apply false` in a precompiled script plugin |
+| `develocity-plugin-old` | warning | no | docs | `com.gradle.develocity` / `com.gradle.enterprise` plugin before 4.0 |
+| `impldep-import` | error | no | docs | `import org.gradle.internal.impldep.*` in Kotlin DSL scripts |
+| `tooling-parallel-implicit` | warning | no | docs | `org.gradle.parallel=true` without `org.gradle.tooling.parallel` (matters during IDE sync) |
+| `isolated-projects-unsafe-names` | warning | yes | docs | `org.gradle.unsafe.isolated-projects*` property names |
+
+`gradle10-ready --list-rules` prints the same list. Each finding links to the Gradle documentation section for the change.
+
+**Suppressing:** a comment `// gradle10-ready: ignore space-assignment` on the line or the line above (no rule name = every rule);
+`--disable RULE`, `--only RULE`, `--ignore 'GLOB'` (repeatable).
+
+## GitHub Action
+
+```yaml
+- uses: actions/checkout@v4
+- uses: cosmichackerx/gradle10-ready@v0.1.0
+  with:
+    fail-on: error            # error | warning | never
+    # path: .                 # project directory or one build file
+    # disable: "find-all-closure"
+    # ignore: "legacy/**"
+    # sarif-file: g10.sarif   # then upload with github/codeql-action/upload-sarif
+```
+
+Findings become annotations on the lines, and a Markdown table goes to the job summary. `action.yml` has the metadata the Marketplace
+asks for (name, description, branding, inputs). Publishing to the Marketplace is a manual tick box on the release page; I have not
+checked that the name is free there.
+
+## How it is verified
+
+* **Against real Gradle, in CI.** `tests/oracle/` holds three small projects (Groovy DSL, Kotlin DSL, Android with AGP 8.13.2) with the deprecated
+  constructs one per line, plus negative cases. CI downloads the Gradle distribution (checksum pinned), runs it with `--warning-mode all`,
+  reads the file, line and documentation anchor Gradle prints (for Kotlin DSL the Kotlin compiler's `w: ...build.gradle.kts:N:M ... is deprecated`
+  lines) and fails if gradle10-ready reports a different set of lines. `--fix-check` applies `--fix` to a copy and checks that Gradle stops
+  warning and the build still succeeds. Today: Gradle 9.8.0 (Groovy, Kotlin DSL) and Gradle 8.14.3 + AGP 8.13.2 (Android).
+* **Unit tests:** about 100 cases (positive and negative for every rule, fixes on CRLF files, idempotence, CLI exit codes, output formats) on
+  Linux, Windows and macOS with Python 3.9, 3.11 and 3.13.
+* **On real projects:** see [docs/precision.md](docs/precision.md): 100 public Android repositories, 64 with at least one finding;
+  40 random findings read by hand.
+
+## How it relates to other tools
+
+* `./gradlew --warning-mode all` and Build Scans are authoritative for what *your* build executes with *your* plugins. gradle10-ready
+  needs no working build, looks at every file including code paths that do not run, and is a cheap CI gate. Use both.
+* [OpenRewrite](https://docs.openrewrite.org/recipes/gradle/useassignmentforpropertysyntax) has a recipe for space-assignment; it runs through a Gradle
+  plugin and needs a working build. gradle10-ready covers more rule families in one pass and needs only Python; OpenRewrite has far more
+  general refactoring power.
+
+## Limitations (read these)
+
+* Pattern based, no Groovy/Kotlin parser, no type information. The space-assignment lists are **explicit allow-lists** of property names
+  confirmed against real Gradle/AGP; anything not on the list is not reported, so recall is limited by design. Android property names depend on the AGP version.
+* Third-party plugin DSLs (Kotlin Gradle Plugin, Spotless, publishing plugins, ...) are not covered, and neither is the `propName(value)`
+  call form. Build logic written as classes (`buildSrc`, included builds) is not scanned, only scripts.
+* Behavioural changes (implicit property lookup in parent projects, execution-time `Task.project` access, configuration-cache
+  incompatibilities, most other Gradle 10 changes) are **not detected**.
+* `--fix` only does mechanical text replacement; review the diff anyway.
+
+## Roadmap
+
+See the [open issues](https://github.com/cosmichackerx/gradle10-ready/issues): PR mode (only new findings), more rules, Kotlin DSL delegate fixes, version-catalog and settings checks.
+
+## License
+
+MIT

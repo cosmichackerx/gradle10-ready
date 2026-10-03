@@ -1,0 +1,11 @@
+# Changelog
+
+## 0.1.0 - 2026-10-03
+
+First release.
+
+* 21 rules for what the Gradle 9.8 upgrade guide lists as deprecated and removed in Gradle 10: Groovy space-assignment (Gradle core and Android Gradle Plugin properties), multi-string dependency notation, Kotlin DSL delegated properties, `project.properties`, Closure-based test listeners, `flatDir(Map)`, `artifactUrls`, the `archives` configuration, `setAllJvmArgs`, `startParameter.buildCacheEnabled`, `reporting.file`, PMD `targetJdk`, `findAll(Closure)`, `buildNeeded`/`buildDependents`, `project.container`, `apply false` in precompiled scripts, Develocity plugin < 4, `impldep` imports, `gradle.properties` checks.
+* `--fix` for space-assignment, multi-string notation and renamed `gradle.properties` keys.
+* Text, Markdown, JSON, GitHub annotation and SARIF 2.1.0 output; `--fail-on`, `--disable`, `--only`, `--ignore`, inline `gradle10-ready: ignore`.
+* GitHub Action (composite).
+* Checked against real Gradle 9.8.0 and Gradle 8.14.3 + AGP 8.13.2 by the `oracle` CI job.

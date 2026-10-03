@@ -1,0 +1,35 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace "com.example.app"
+    compileSdk 35
+
+    defaultConfig {
+        applicationId "com.example.app"
+        minSdk 24
+        targetSdk 35
+        versionCode 1
+        versionName "1.0"
+    }
+    buildTypes {
+        release {
+            minifyEnabled true
+            shrinkResources true
+        }
+    }
+}
+
+dependencies {
+    implementation group: 'com.squareup.okhttp3', name: 'okhttp', version: '4.12.0'
+    implementation(group: 'com.google.guava', name: 'guava', version: '33.0.0-android')
+    implementation 'androidx.core:core-ktx:1.13.1'
+}
+
+tasks.withType(Test).configureEach {
+    maxHeapSize "1g"
+    afterSuite { desc, result -> println "${desc.name}: ${result.resultType}" }
+}
+
+def signing = project.properties['releaseKeyPassword']

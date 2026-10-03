@@ -1,0 +1,143 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: test (${{ matrix.os }}, python ${{ matrix.python }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python: ["3.9", "3.11", "3.13"]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: ${{ matrix.python }}
+      - run: python -m pip install --upgrade pip pytest
+      - run: python -m pip install .
+      - run: python -m pytest -q
+      - name: Installed CLI runs
+        run: |
+          gradle10-ready --version
+          gradle10-ready --list-rules
+
+  oracle:
+    # The scanner is checked against real Gradle: every deprecation Gradle prints for the oracle projects must be reported
+    # on the same line, and nothing else. --fix-check applies --fix and checks that Gradle stops warning and the build still works.
+    name: oracle (real Gradle ${{ matrix.gradle }}, ${{ matrix.project }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { gradle: "9.8.0", sha256: "bafd5ce9cfaea0fbccfdc8439a1ac42fbd4cd9c89dc9a988228d8a2639a58e6c", project: groovy, file: build.gradle }
+          - { gradle: "9.8.0", sha256: "bafd5ce9cfaea0fbccfdc8439a1ac42fbd4cd9c89dc9a988228d8a2639a58e6c", project: kotlin, file: build.gradle.kts }
+          - { gradle: "8.14.3", sha256: "bd71102213493060956ec229d946beee57158dbd89d0e62b91bca0fa2c5f3531", project: android, file: app/build.gradle }
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          distribution: temurin
+          java-version: "17"
+      - name: Install Gradle ${{ matrix.gradle }} (checksum pinned)
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/gradle.zip" "https://services.gradle.org/distributions/gradle-${{ matrix.gradle }}-bin.zip"
+          echo "${{ matrix.sha256 }}  $RUNNER_TEMP/gradle.zip" | sha256sum -c -
+          unzip -q "$RUNNER_TEMP/gradle.zip" -d "$RUNNER_TEMP"
+          echo "$RUNNER_TEMP/gradle-${{ matrix.gradle }}/bin" >> "$GITHUB_PATH"
+      - name: Scanner agrees with Gradle
+        run: python tests/oracle/run_oracle.py tests/oracle/${{ matrix.project }} ${{ matrix.file }}
+      - name: --fix removes the warnings and the build still works
+        if: matrix.project != 'kotlin'
+        run: python tests/oracle/run_oracle.py tests/oracle/${{ matrix.project }} ${{ matrix.file }} --fix-check
+
+  package:
+    name: build wheel and sdist, install the wheel
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+      - run: python -m pip install --upgrade pip build
+      - run: python -m build
+      - name: Install the wheel into a clean venv and scan a fixture
+        run: |
+          python -m venv /tmp/v
+          /tmp/v/bin/pip install dist/*.whl
+          /tmp/v/bin/gradle10-ready tests/fixtures/legacy-app --fail-on never | tail -3
+
+  action-selftest:
+    name: action-selftest (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Legacy fixture must fail the step
+        id: bad
+        continue-on-error: true
+        uses: ./
+        with:
+          path: tests/fixtures/legacy-app
+          sarif-file: ${{ runner.temp }}/g10.sarif
+      - name: It really failed and wrote SARIF
+        run: |
+          if [ "${{ steps.bad.outcome }}" != "failure" ]; then echo "expected failure, got ${{ steps.bad.outcome }}"; exit 1; fi
+          py=python3; command -v python3 > /dev/null || py=python
+          "$py" -c "import json,sys;j=json.load(open(sys.argv[1]));r={x['ruleId'] for x in j['runs'][0]['results']};assert j['version']=='2.1.0' and {'space-assignment','multi-string-dependency','test-closure-methods'} <= r, r;print('results:',len(r))" "$RUNNER_TEMP/g10.sarif"
+      - name: fail-on never lets the same fixture pass
+        uses: ./
+        with:
+          path: tests/fixtures/legacy-app
+          fail-on: never
+      - name: Clean fixture passes
+        uses: ./
+        with:
+          path: tests/fixtures/clean-app
+      - name: disable and ignore inputs are honoured
+        uses: ./
+        with:
+          path: tests/fixtures/legacy-app
+          disable: "space-assignment multi-string-dependency test-closure-methods project-properties"
+          fail-on: error
+
+  dependabot-gaps:
+    name: dependabot-gaps (released action, consumer test)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: cosmichackerx/dependabot-gaps@v0.2.0
+        with:
+          fail-on: warning
+          pr-mode: ${{ github.event_name == 'pull_request' && 'true' || 'false' }}

@@ -1,0 +1,89 @@
+// Android Gradle Plugin DSL properties set with the Groovy space-assignment syntax.
+// Each statement is on its own line; tests/oracle/run_oracle.py compares them with what Gradle really warns about.
+plugins {
+    id 'com.android.application'
+}
+def t(Closure c) { try { c() } catch (Throwable e) { println "build error: " + e.message.take(100) } }
+
+android {
+    namespace "com.example.oracle"
+    compileSdk 35
+    ndkVersion "27.0.12077973"
+    buildToolsVersion "35.0.0"
+    defaultConfig {
+        applicationId "com.example.oracle"
+        minSdk 24
+        targetSdk 35
+        versionCode 1
+        versionName "1.0"
+        multiDexEnabled true
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        versionNameSuffix "-x"
+        applicationIdSuffix ".x"
+        vectorDrawables.useSupportLibrary true
+    }
+    signingConfigs {
+        debug {
+            storeFile file("debug.keystore")
+            storePassword "android"
+            keyAlias "androiddebugkey"
+            keyPassword "android"
+        }
+    }
+    buildTypes {
+        release {
+            minifyEnabled true
+            shrinkResources true
+            debuggable false
+            signingConfig signingConfigs.debug
+        }
+    }
+    compileOptions {
+        coreLibraryDesugaringEnabled true
+    }
+    packaging {
+        jniLibs {
+            useLegacyPackaging true
+        }
+    }
+    splits {
+        abi {
+            enable true
+            universalApk true
+        }
+    }
+    buildFeatures {
+        buildConfig true
+        viewBinding true
+        dataBinding true
+    }
+    lint {
+        abortOnError false
+        checkReleaseBuilds false
+        warningsAsErrors true
+        ignoreWarnings true
+        checkDependencies true
+        htmlReport true
+        xmlReport true
+        sarifReport true
+        textReport true
+        showAll true
+        absolutePaths false
+        lintConfig file("lint.xml")
+        baseline file("lint-baseline.xml")
+        htmlOutput file("r.html")
+        xmlOutput file("r.xml")
+        sarifOutput file("r.sarif")
+        textOutput file("r.txt")
+    }
+    externalNativeBuild {
+        cmake {
+            version "3.22.1"
+        }
+    }
+    testOptions {
+        unitTests {
+            includeAndroidResources true
+        }
+    }
+}

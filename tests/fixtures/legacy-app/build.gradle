@@ -1,0 +1,11 @@
+buildscript {
+    repositories {
+        google()
+        maven { url "https://jitpack.io" }
+    }
+}
+
+allprojects {
+    group 'com.example'
+    version '1.0'
+}

@@ -1,0 +1,34 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "gradle10-ready"
+version = "0.1.0"
+description = "Find what Gradle 10 removes in your build scripts without running Gradle: Groovy space-assignment, multi-string dependency notation, Kotlin DSL delegated properties, project.properties and more. Auto-fix, SARIF and GitHub Action included."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [{ name = "Muhammad Arslan", email = "cosmichackerx@users.noreply.github.com" }]
+keywords = ["gradle", "gradle-10", "gradle-9", "deprecation", "migration", "groovy-dsl", "kotlin-dsl", "lint", "linter", "autofix", "sarif", "github-action", "build-scripts", "android"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "License :: OSI Approved :: MIT License",
+  "Environment :: Console",
+  "Topic :: Software Development :: Quality Assurance",
+  "Topic :: Software Development :: Build Tools",
+]
+
+[project.urls]
+Homepage = "https://github.com/cosmichackerx/gradle10-ready"
+Issues = "https://github.com/cosmichackerx/gradle10-ready/issues"
+
+[project.scripts]
+gradle10-ready = "gradle10_ready.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]

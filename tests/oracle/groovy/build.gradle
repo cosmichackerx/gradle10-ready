@@ -1,0 +1,44 @@
+// Every deprecated construct sits on its own line. tests/oracle/run_oracle.py runs real Gradle on this file
+// and checks that gradle10-ready reports exactly the lines Gradle warns about.
+plugins { id 'java'; id 'application'; id 'checkstyle'; id 'pmd'; id 'maven-publish' }
+def t(Closure c) { try { c() } catch (Throwable e) { println "build error: " + e.message.take(100) } }
+
+group 'com.example'
+version '1.0'
+repositories {
+    maven { url 'https://repo.example.invalid/m' }
+    t { flatDir dirs: 'libs' }
+}
+dependencies {
+    implementation group: 'org.apache.commons', name: 'commons-lang3', version: '3.14.0'
+    implementation(group: 'com.google.guava', name: 'guava', version: '33.0.0-jre')
+}
+test {
+    maxHeapSize '1g'
+    ignoreFailures true
+    t { afterSuite { d, r -> } }
+    t { beforeTest { d -> } }
+    testLogging { showStandardStreams true }
+}
+tasks.withType(JavaCompile).configureEach { options.encoding 'UTF-8' }
+checkstyle { toolVersion '10.12.0' }
+t { println project.properties['nothing'] }
+t { tasks.findAll { it.name == 'x' } }
+t { project.container(String) }
+t { gradle.startParameter.buildCacheEnabled = false }
+t { reporting.file('x') }
+t { tasks.register('je', JavaExec) { setAllJvmArgs(['-Xmx1g']) }.get() }
+t { artifacts { archives file('x.txt') } }
+t { configurations.archives.name }
+t { tasks.named('build') { dependsOn 'buildNeeded' }.get() }
+t { repositories { maven { artifactUrls 'https://x.invalid/a' } } }
+t { repositories { mavenCentral(name: 'mc') } }
+t { pmd { targetJdk = null } }
+
+// negative cases: explicit methods and assignments must not be reported
+jar { archiveBaseName = 'x' }
+test { jvmArgs '-Xmx1g'; workingDir 'x' }
+description = 'assigned'
+tasks.register('noop') { description = 'x'; group = 'verification' }
+// group 'commented out'
+String name = 'local'
