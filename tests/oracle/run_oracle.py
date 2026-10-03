@@ -33,8 +33,8 @@ def gradle_warnings(project, build_file, gradle):
 KOTLIN_RULES = {"kotlin-dsl-delegate", "multi-string-dependency", "project-properties"}
 
 
-def kotlin_main(project, build_file, gradle):
-    """Kotlin DSL: the Kotlin compiler prints `w: file://.../build.gradle.kts:LINE:COL: ... is deprecated` for the same constructs."""
+def kotlin_warnings(project, build_file, gradle):
+    """Lines the Kotlin compiler warns about (`w: file://.../build.gradle.kts:LINE:COL: ... is deprecated`) and the full Gradle output."""
     import tempfile
     # a fresh Gradle user home forces the script to be compiled again, which is when the Kotlin compiler prints its warnings
     home = tempfile.mkdtemp(prefix="g10-home-")
@@ -42,6 +42,12 @@ def kotlin_main(project, build_file, gradle):
                          env=dict(os.environ, GRADLE_USER_HOME=home), stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, timeout=600).stdout
     shutil.rmtree(home, ignore_errors=True)
     got = {int(m.group(1)) for m in re.finditer(r"^w: file://\S*?%s:(\d+):\d+: .*is deprecated" % re.escape(os.path.basename(build_file)), out, re.M)}
+    return got, out
+
+
+def kotlin_main(project, build_file, gradle):
+    """Kotlin DSL: the Kotlin compiler prints a warning for the same constructs."""
+    got, out = kotlin_warnings(project, build_file, gradle)
     res = scan(os.path.join(project, build_file), only=KOTLIN_RULES)
     ours = {f.line for f in res.findings}
     print(f"kotlin compiler warned on {len(got)} line(s), gradle10-ready reported {len(ours)}")
@@ -61,6 +67,21 @@ def fix_check(project, build_file, gradle):
     work = os.path.join(tmp, "p")
     shutil.copytree(project, work, ignore=shutil.ignore_patterns(".gradle", "build"))
     files, edits = apply_fixes(work)
+    if build_file.endswith(".kts"):
+        before, _ = kotlin_warnings(project, build_file, gradle)
+        after, out = kotlin_warnings(work, build_file, gradle)
+        print(f"--fix changed {edits} place(s) in {files} file(s); Kotlin compiler deprecation warnings: {len(before)} before, {len(after)} after")
+        remaining = {f.line for f in scan(os.path.join(work, build_file), only=KOTLIN_RULES).findings}
+        print(f"  left for a human (detected, no automatic fix): lines {sorted(remaining)}")
+        for l in sorted(after - remaining):
+            print(f"  STILL WARNS  line {l}")
+        for l in sorted(remaining - after):
+            print(f"  EXTRA        line {l}")
+        ok = "BUILD SUCCESSFUL" in out
+        if not ok:
+            print("  build no longer succeeds after --fix")
+        shutil.rmtree(tmp, ignore_errors=True)
+        return 0 if ok and after == remaining else 1
     fixable = {r.url.split("#")[1] for r in RULES.values() if r.fixable and r.oracle}
     before, _ = gradle_warnings(project, build_file, gradle)
     after, out = gradle_warnings(work, build_file, gradle)

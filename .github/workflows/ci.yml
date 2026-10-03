@@ -64,7 +64,6 @@ jobs:
       - name: Scanner agrees with Gradle
         run: python tests/oracle/run_oracle.py tests/oracle/${{ matrix.project }} ${{ matrix.file }}
       - name: --fix removes the warnings and the build still works
-        if: matrix.project != 'kotlin'
         run: python tests/oracle/run_oracle.py tests/oracle/${{ matrix.project }} ${{ matrix.file }} --fix-check
 
   package:

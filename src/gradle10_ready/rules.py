@@ -30,7 +30,7 @@ RULES: dict = {r.id: r for r in [
          "Use the single string `group:name:version`.", U9 + "#dependency_multi_string_notation", True),
     Rule("kotlin-dsl-delegate", "error",
          "Kotlin DSL property delegates (by project / extra / settings / registering / creating / existing / getting) are removed in Gradle 10",
-         "Use the explicit API, for example `project.property(\"p\")`, `extra[\"p\"]`, `tasks.register(\"x\")`.", U9 + "#kotlin_dsl_delegated_properties"),
+         "Use the explicit API, for example `project.property(\"p\")`, `extra[\"p\"]`, `tasks.register(\"x\")`.", U9 + "#kotlin_dsl_delegated_properties", True),
     Rule("project-properties", "error",
          "Project.getProperties() / project.properties is removed in Gradle 10",
          "Use `providers.gradleProperty(\"name\")` or `project.findProperty(\"name\")`.", U9 + "#deprecated_get_properties"),
