@@ -1,0 +1,5 @@
+{
+  "claims": [
+    {"id": "action and hook pins in the README equal the newest release", "file": "README.md", "regex": "(?:gradle10-ready@|rev: )v([0-9.]+)", "expect": {"latest_tag": "https://github.com/cosmichackerx/gradle10-ready"}}
+  ]
+}
