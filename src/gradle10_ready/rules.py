@@ -45,7 +45,7 @@ RULES: dict = {r.id: r for r in [
          "Publish POM and artifacts at the same base URL.", U9 + "#deprecated_maven_artifact_urls"),
     Rule("archives-configuration", "warning",
          "The `archives` configuration is deprecated and removed in Gradle 10",
-         "Add the artifact as a dependency of `assemble` instead.", U9 + "#sec:archives-configuration"),
+         "Add the artifact as a dependency of `assemble` instead.", U9 + "#archives-configuration"),
     Rule("build-needed-dependents", "warning",
          "The buildNeeded and buildDependents tasks are removed in Gradle 10",
          "Run the specific tasks (`./gradlew :proj:build`) or use test report aggregation.", U9 + "#deprecate_build_needed_build_dependents_tasks", oracle=False),

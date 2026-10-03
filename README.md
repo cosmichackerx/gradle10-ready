@@ -188,6 +188,23 @@ Findings become annotations on the lines, and a Markdown table goes to the job s
 asks for (name, description, branding, inputs). Publishing to the Marketplace is a manual tick box on the release page; I have not
 checked that the name is free there.
 
+## Deprecation watch (keeps the rule table honest)
+
+`.github/workflows/gradle-watch.yml` runs every Monday (and on demand). `scripts/watch/watch_upgrade_guide.py` reads the *Deprecations* sections of the
+[Gradle 9 upgrade guide](https://docs.gradle.org/current/userguide/upgrading_version_9.html), and compares every item against the anchors cited by the rules and
+`scripts/watch/triaged.txt`. It opens **one issue** (label `gradle-watch`, deduplicated by a key in the title) when
+
+- the guide lists a deprecation that no rule or triage entry covers,
+- a rule cites an anchor that no longer exists in the guide (Gradle's own `archives` message links to a dead anchor), or
+- `upgrading_version_10.html` or a `10.x` entry in `services.gradle.org/versions/all` appears.
+
+```
+$ python scripts/watch/watch_upgrade_guide.py
+deprecation items: 54; cited by a rule: 18; triaged: 36; new: 0
+```
+
+Limits: heading titles are only a proxy for "removed in the next major", and the 36 baseline entries in `triaged.txt` mean *known when the watcher started*, not *reviewed*.
+
 ## How it is verified
 
 * **Against real Gradle, in CI.** `tests/oracle/` holds three small projects (Groovy DSL, Kotlin DSL, Android with AGP 8.13.2) with the deprecated
