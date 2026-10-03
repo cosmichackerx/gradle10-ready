@@ -1,0 +1,7 @@
+{
+  "claims": [
+    {"id": "unit tests (table)", "file": "README.md", "regex": "\\| (\\d+) tests \\| green", "expect": {"command": "python -m pytest --collect-only -q", "regex": "^(\\d+) tests? collected"}},
+    {"id": "unit tests (development section)", "file": "README.md", "regex": "\\*\\*Unit tests:\\*\\* (\\d+) tests", "expect": {"command": "python -m pytest --collect-only -q", "regex": "^(\\d+) tests? collected"}},
+    {"id": "action and hook pins in the README", "file": "README.md", "regex": "(?:gradle10-ready@|rev: )v([0-9.]+)", "expect": {"file": "pyproject.toml", "regex": "^version = \"([0-9.]+)\""}}
+  ]
+}
