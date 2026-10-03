@@ -234,7 +234,7 @@ Limits: heading titles are only a proxy for "removed in the next major", and the
   reads the file, line and documentation anchor Gradle prints (for Kotlin DSL the Kotlin compiler's `w: ...build.gradle.kts:N:M ... is deprecated`
   lines) and fails if gradle10-ready reports a different set of lines. `--fix-check` applies `--fix` to a copy and checks that Gradle stops
   warning and the build still succeeds. Today: Gradle 9.8.0 (Groovy, Kotlin DSL) and Gradle 8.14.3 + AGP 8.13.2 (Android).
-* **Unit tests:** about 100 cases (positive and negative for every rule, fixes on CRLF files, idempotence, CLI exit codes, output formats) on
+* **Unit tests:** 148 tests (positive and negative for every rule, fixes on CRLF files, idempotence, CLI exit codes, output formats) on
   Linux, Windows and macOS with Python 3.9, 3.11 and 3.13.
 * **On real projects:** see [docs/precision.md](docs/precision.md): 100 public Android repositories, 64 with at least one finding;
   40 random findings read by hand.
