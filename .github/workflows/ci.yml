@@ -188,13 +188,13 @@ jobs:
         with:
           persist-credentials: false
       - name: Clean fixture passes with the published tag
-        uses: cosmichackerx/gradle10-ready@v0.2.0
+        uses: cosmichackerx/gradle10-ready@v0.2.2
         with:
           path: tests/fixtures/clean-app
       - name: Legacy fixture fails with the published tag
         id: bad
         continue-on-error: true
-        uses: cosmichackerx/gradle10-ready@v0.2.0
+        uses: cosmichackerx/gradle10-ready@v0.2.2
         with:
           path: tests/fixtures/legacy-app
       - name: It really failed
